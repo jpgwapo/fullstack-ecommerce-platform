@@ -1,0 +1,18 @@
+<?php
+namespace App\Http\Controllers;
+use App\Models\{Product,Order,User};
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\{Auth,DB,Hash};
+use Illuminate\Validation\ValidationException;
+class StoreController extends Controller {
+ public function products(Request $r){return Product::query()->when($r->query('search'),fn($q,$s)=>$q->where('name','like','%'.$s.'%'))->orderBy('id')->get();}
+ public function register(Request $r){$d=$r->validate(['name'=>'required|string|max:100','email'=>'required|email|max:255|unique:users','password'=>'required|string|min:10|confirmed']);$u=User::create(['name'=>$d['name'],'email'=>$d['email'],'password'=>Hash::make($d['password'])]);Auth::login($u);$r->session()->regenerate();return response()->json($u,201);}
+ public function login(Request $r){$d=$r->validate(['email'=>'required|email','password'=>'required|string']);if(!Auth::attempt($d))throw ValidationException::withMessages(['email'=>'Invalid email or password.']);$r->session()->regenerate();return $r->user();}
+ public function logout(Request $r){Auth::logout();$r->session()->invalidate();$r->session()->regenerateToken();return response()->json(['message'=>'Signed out']);}
+ public function orders(Request $r){return Order::with('items')->where('user_id',$r->user()->id)->latest()->get();}
+ public function checkout(Request $r){$d=$r->validate(['items'=>'required|array|min:1|max:50','items.*.product_id'=>'required|integer|distinct','items.*.quantity'=>'required|integer|min:1|max:99','shipping.name'=>'required|string|max:100','shipping.address'=>'required|string|max:255','shipping.city'=>'required|string|max:100','shipping.postal_code'=>'required|string|max:20','payment'=>'required|in:mock']);return DB::transaction(function()use($r,$d){$items=collect($d['items'])->sortBy('product_id');$products=Product::whereIn('id',$items->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');$total=0;$lines=[];foreach($items as $i){$p=$products->get($i['product_id']);if(!$p || $p->stock<$i['quantity'])throw ValidationException::withMessages(['items'=>'An item is unavailable or has insufficient stock.']);$total+=$p->price_cents*$i['quantity'];$lines[]=['product_id'=>$p->id,'name'=>$p->name,'price_cents'=>$p->price_cents,'quantity'=>$i['quantity']];$p->decrement('stock',$i['quantity']);}$o=Order::create(['user_id'=>$r->user()->id,'total_cents'=>$total,'shipping'=>$d['shipping'],'status'=>'paid']);$o->items()->createMany($lines);return response()->json($o->load('items'),201);});}
+ private function admin(Request $r){abort_unless($r->user()->is_admin,403);}
+ public function dashboard(Request $r){$this->admin($r);return ['revenue_cents'=>(int)Order::sum('total_cents'),'orders'=>Order::count(),'customers'=>User::where('is_admin',false)->count(),'low_stock'=>Product::where('stock','<',5)->get(),'recent_orders'=>Order::with('items')->latest()->limit(10)->get()];}
+ public function saveProduct(Request $r,?Product $product=null){$this->admin($r);$d=$r->validate(['name'=>'required|string|max:150','category'=>'required|string|max:80','description'=>'required|string|max:2000','price_cents'=>'required|integer|min:1|max:10000000','stock'=>'required|integer|min:0|max:100000','image'=>'required|url|max:500']);$product??=new Product;$product->fill($d)->save();return $product;}
+ public function deleteProduct(Request $r,Product $product){$this->admin($r);if(DB::table('order_items')->where('product_id',$product->id)->exists())return response()->json(['message'=>'Purchased products must be kept for order history. Set stock to zero instead.'],422);$product->delete();return response()->noContent();}
+}

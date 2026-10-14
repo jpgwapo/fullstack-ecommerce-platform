@@ -1,6 +1,6 @@
 # Forma · Fullstack E-commerce Platform
 
-A modern essentials store built with React, TypeScript, Tailwind CSS, Laravel 12 (PHP 8.2+), MySQL, and dependency-free Python analytics. Cookie authentication, searchable catalog, persistent local cart, transactional mock checkout, private order history, and admin inventory management.
+A modern essentials store built with React, TypeScript, Tailwind CSS, Laravel 12 (PHP 8.4.1+), MySQL, and dependency-free Python analytics. Cookie authentication, searchable catalog, persistent local cart, transactional mock checkout, private order history, and admin inventory management.
 
 ![Desktop storefront](docs/screenshots/desktop.png)
 ![Mobile storefront](docs/screenshots/mobile.png)
@@ -8,7 +8,7 @@ A modern essentials store built with React, TypeScript, Tailwind CSS, Laravel 12
 
 ## Setup
 
-Requires PHP 8.2+, Composer, Node 20.19+ or 22.12+, Python 3, and MySQL 8 (or Docker).
+Requires PHP 8.4.1+, Composer, Node 20.19+ or 22.12+, Python 3, and MySQL 8 (or Docker).
 
 ```sh
 composer install

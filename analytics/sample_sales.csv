@@ -1,0 +1,5 @@
+order_id,date,product,quantity,price_cents,status
+1,2026-10-12,Studio headphones,1,12900,paid
+1,2026-10-12,Everyday tote,2,3800,paid
+2,2026-10-13,Arc lounge chair,1,24900,paid
+3,2026-10-14,Analog watch,1,8900,paid
